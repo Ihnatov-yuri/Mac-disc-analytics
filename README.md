@@ -20,7 +20,7 @@ Built with SwiftUI for macOS 13 (Ventura) and later.
 - **Lit Field design language** (the ihnatov.nl design system, Operate
   mode): a static light field behind veiled panels, Archivo for controls
   and figures, Schibsted Grotesk for sentences, tabular numerals, and one
-  accent. Flat, contrast-checked fills by file type: folders light slate,
+  accent. Flat, contrast-checked fills by file type: folders slate grey,
   video blue, images green, audio amber, documents and code graphite,
   archives and installers crimson. The selected item is the one orange
   cell.

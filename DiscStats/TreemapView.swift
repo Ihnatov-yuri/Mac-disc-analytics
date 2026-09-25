@@ -53,13 +53,13 @@ enum FileCategory: CaseIterable {
     /// Cell fill. Contrast of the label ink on each fill is noted inline.
     var fill: Color {
         switch self {
-        case .folder:   return Color(hex: 0xC4CACD) // ink 11.8:1
+        case .folder:   return Color(hex: 0x80868D) // ink 5.3:1, 3.4:1 against the gutter
         case .video:    return AppColor.statusInfo    // #14507A, white 8.5:1
         case .image:    return AppColor.statusSuccess // #0F5D3A, white 7.9:1
         case .audio:    return AppColor.statusWarning // #7A4B00, white 7.4:1
         case .document: return AppColor.ink2          // #23262B, white 15:1
         case .archive:  return AppColor.statusError   // #9F1239, white 8.0:1
-        case .other:    return Color(hex: 0x6B7178)   // white 4.9:1
+        case .other:    return AppColor.ink3          // #454A52, white 8.9:1
         }
     }
 
@@ -69,9 +69,8 @@ enum FileCategory: CaseIterable {
     }
 
     /// Glyph for this category on a light ground (side panel, status bar).
-    /// Light fills are too faint as a glyph, so folders use `ink3`.
     var glyphInk: Color {
-        self == .folder ? AppColor.ink3 : fill
+        fill
     }
 }
 
@@ -151,10 +150,16 @@ struct TreemapView: View {
 
     // MARK: Drawing
 
+    /// Half the gutter between neighbouring cells. The gutter shows the
+    /// panel veil, and every fill clears 3:1 against it, so the boundary
+    /// between two cells of the same category stays readable.
+    private static let gutterHalf: CGFloat = 1.0
+
     private func drawCell(item: TreemapItem, baseCtx: GraphicsContext) {
         let ctx = baseCtx
-        let rect = item.rect
-        let path = Path(roundedRect: rect, cornerRadius: 2)
+        let inset = min(Self.gutterHalf, item.rect.width / 4, item.rect.height / 4)
+        let rect = item.rect.insetBy(dx: inset, dy: inset)
+        let path = Path(roundedRect: rect, cornerRadius: 2.5)
         let category = FileCategory(node: item.node)
         let isSel = item.node.id == selectedId
         let isHov = item.node.id == hoveredId
@@ -170,9 +175,6 @@ struct TreemapView: View {
         } else if isHov {
             ctx.fill(path, with: .color(.white.opacity(0.14)))
             ctx.stroke(path, with: .color(ink), lineWidth: 1.5)
-        } else {
-            // Internal divider between marks, not a panel outline.
-            ctx.stroke(path, with: .color(AppColor.hairStrong), lineWidth: 0.5)
         }
 
         guard rect.width > 48, rect.height > 24 else { return }
