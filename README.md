@@ -66,6 +66,12 @@ xcodebuild -project DiscStats.xcodeproj \
            -configuration Debug build
 ```
 
+To build a Release copy and install it into `/Applications` in one step:
+
+```bash
+./scripts/install.sh
+```
+
 The app is ad‑hoc signed (`CODE_SIGN_IDENTITY = "-"`), so it runs locally
 without an Apple Developer account.
 
