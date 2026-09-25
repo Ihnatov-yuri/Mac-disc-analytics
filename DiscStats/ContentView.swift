@@ -3,7 +3,6 @@ import AppKit
 
 struct ContentView: View {
     @StateObject private var progress = ScanProgress()
-    @Environment(\.openWindow) private var openWindow
     @State private var currentNode: FileNode? = nil
     @State private var path: [FileNode] = []
     @State private var selectedNode: FileNode? = nil
@@ -12,17 +11,14 @@ struct ContentView: View {
     @State private var deleteError: String? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            toolbarBar
-            Divider()
-            if !path.isEmpty {
-                breadcrumbBar
-                Divider()
+        ZStack {
+            LitField()
+            VStack(spacing: 0) {
+                topbar
+                content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                statusBar
             }
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
-            statusBar
         }
         .navigationTitle(windowTitle)
         .onChange(of: progress.root) { newRoot in
@@ -60,15 +56,32 @@ struct ContentView: View {
         return "DiscStats"
     }
 
-    // MARK: - Toolbar
+    // MARK: - Topbar
 
-    private var toolbarBar: some View {
-        HStack(spacing: 8) {
+    /// Sticky chrome on the topbar veil with a seam shadow, never a lifted
+    /// panel: a lifted bar over content would read as a second plane.
+    private var topbar: some View {
+        VStack(spacing: 0) {
+            toolbarRow
+            if !path.isEmpty {
+                Hairline()
+                breadcrumbBar
+            }
+        }
+        .background(Color(.sRGB, red: 238 / 255, green: 238 / 255, blue: 236 / 255, opacity: 0.72))
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(AppColor.ink.opacity(0.07)).frame(height: 1)
+        }
+    }
+
+    private var toolbarRow: some View {
+        HStack(spacing: AppMetric.xs) {
             Button {
                 pickFolder()
             } label: {
                 Label("Choose Folder", systemImage: "folder.badge.plus")
             }
+            .buttonStyle(.lit(.ghost, size: .compact))
             .keyboardShortcut("o", modifiers: .command)
             .disabled(progress.isScanning)
             .help("Choose a folder to scan (⌘O)")
@@ -80,6 +93,7 @@ struct ContentView: View {
             } label: {
                 Label("Rescan", systemImage: "arrow.clockwise")
             }
+            .buttonStyle(.lit(.ghost, size: .compact))
             .keyboardShortcut("r", modifiers: .command)
             .disabled(progress.isScanning || progress.root == nil)
             .help("Re-scan current folder (⌘R)")
@@ -89,6 +103,7 @@ struct ContentView: View {
             } label: {
                 Label("Up", systemImage: "arrow.up")
             }
+            .buttonStyle(.lit(.ghost, size: .compact))
             .keyboardShortcut("[", modifiers: .command)
             .disabled(path.count <= 1)
             .help("Go up one folder (⌘[)")
@@ -97,8 +112,9 @@ struct ContentView: View {
                 Button {
                     progress.cancelled = true
                 } label: {
-                    Label("Cancel", systemImage: "xmark.circle")
+                    Label("Cancel", systemImage: "xmark")
                 }
+                .buttonStyle(.lit(.secondary, size: .compact))
                 .help("Cancel scan")
             }
 
@@ -106,26 +122,21 @@ struct ContentView: View {
 
             if let current = currentNode, !progress.isScanning {
                 HStack(spacing: 6) {
-                    Image(systemName: "internaldrive")
-                        .foregroundStyle(.secondary)
                     Text(current.size.formattedSize)
-                        .font(.callout.weight(.medium))
-                        .monospacedDigit()
-                    Text("·")
-                        .foregroundStyle(.tertiary)
+                        .font(AppFont.display(13.5, weight: .bold).monospacedDigit())
+                        .foregroundStyle(AppColor.ink)
                     Text("\(current.itemCount.formatted()) items")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                        .font(AppFont.display(13.5).monospacedDigit())
+                        .foregroundStyle(AppColor.ink3)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color(NSColor.controlBackgroundColor),
-                            in: Capsule())
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.66), in: Capsule())
+                .overlay(Capsule().strokeBorder(AppColor.hair, lineWidth: 1))
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, AppMetric.m)
+        .padding(.vertical, AppMetric.s)
     }
 
     private var breadcrumbBar: some View {
@@ -134,39 +145,19 @@ struct ContentView: View {
                 ForEach(Array(path.enumerated()), id: \.element.id) { idx, node in
                     if idx > 0 {
                         Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 1)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(AppColor.ink4)
+                            .padding(.horizontal, 2)
                     }
-                    Button {
+                    CrumbButton(title: node.name,
+                                isRoot: idx == 0,
+                                isCurrent: idx == path.count - 1) {
                         navigate(to: idx)
-                    } label: {
-                        HStack(spacing: 4) {
-                            if idx == 0 {
-                                Image(systemName: "folder")
-                                    .font(.caption)
-                            }
-                            Text(node.name)
-                                .font(.callout)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(idx == path.count - 1
-                                      ? Color.accentColor.opacity(0.15)
-                                      : Color.clear)
-                        )
-                        .foregroundStyle(idx == path.count - 1
-                                         ? Color.primary
-                                         : Color.accentColor)
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.horizontal, AppMetric.m)
+            .padding(.vertical, AppMetric.xs)
         }
     }
 
@@ -179,9 +170,13 @@ struct ContentView: View {
         } else if let current = currentNode {
             HSplitView {
                 treemapPanel(current: current)
+                    .padding([.leading, .vertical], AppMetric.m)
+                    .padding(.trailing, AppMetric.s)
                     .frame(minWidth: 500)
                 sidePanel
-                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
+                    .padding([.trailing, .vertical], AppMetric.m)
+                    .padding(.leading, AppMetric.s)
+                    .frame(minWidth: 270, idealWidth: 320, maxWidth: 420)
             }
             // Only re-key on tree mutations (delete). Plain drill/back navigation
             // updates the node prop in place so the split view + side panel don't
@@ -193,80 +188,77 @@ struct ContentView: View {
     }
 
     private var scanningView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppMetric.l) {
             ProgressView()
-                .scaleEffect(1.4)
+                .controlSize(.large)
             Text("Scanning…")
-                .font(.title3.weight(.semibold))
-            VStack(spacing: 4) {
+                .font(AppFont.display(22, weight: .bold))
+                .foregroundStyle(AppColor.ink)
+            VStack(spacing: AppMetric.xs) {
                 Text("\(progress.filesScanned.formatted()) files · \(progress.bytesSeen.formattedSize)")
-                    .font(.callout)
-                    .monospacedDigit()
+                    .font(AppFont.display(15).monospacedDigit())
+                    .foregroundStyle(AppColor.ink2)
                 if progress.scanElapsed > 0.5 {
                     let rate = Double(progress.filesScanned) / max(progress.scanElapsed, 0.001)
                     Text("\(formatElapsed(progress.scanElapsed)) · \(Int(rate).formatted()) files/sec")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                        .font(AppFont.display(13).monospacedDigit())
+                        .foregroundStyle(AppColor.ink3)
                 }
             }
             Text(progress.currentPath)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(AppColor.ink4)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(maxWidth: 600)
-                .padding(.top, 6)
+                .frame(maxWidth: 520)
+                .padding(.top, AppMetric.xs)
         }
+        .padding(AppMetric.xl + 8)
+        .frame(maxWidth: 600)
+        .litPanel(lift: .two, radius: 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(AppMetric.l)
     }
 
+    /// One sentence on what will appear, and one action. No illustration.
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "internaldrive")
-                .font(.system(size: 64))
-                .foregroundStyle(.tint)
-                .opacity(0.85)
-            Text("Welcome to DiscStats")
-                .font(.title2.weight(.semibold))
-            Text("Choose a folder to see how disk space is being used.\nClick a rectangle to inspect it · Double-click a folder to drill in.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .lineSpacing(2)
+        VStack(alignment: .leading, spacing: AppMetric.m) {
+            Text("See where your disk space goes")
+                .font(AppFont.display(26, weight: .bold))
+                .tracking(-0.6)
+                .foregroundStyle(AppColor.ink)
+            Text("Choose a folder and DiscStats maps everything inside it. Each rectangle is a file or folder, sized by the space it takes. Click one to inspect it, double-click a folder to drill in.")
+                .font(AppFont.text(15))
+                .foregroundStyle(AppColor.ink3)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
             Button {
                 pickFolder()
             } label: {
                 Label("Choose Folder…", systemImage: "folder.badge.plus")
-                    .padding(.horizontal, 8)
             }
-            .controlSize(.large)
+            .buttonStyle(.lit(.primary, size: .large))
             .keyboardShortcut("o", modifiers: .command)
-            .padding(.top, 4)
-
-            Button {
-                openWindow(id: "about")
-            } label: {
-                Text("About DiscStats")
-                    .font(.caption)
-            }
-            .buttonStyle(.link)
-            .padding(.top, 4)
+            .padding(.top, AppMetric.s)
         }
+        .padding(AppMetric.xl + 8)
+        .frame(maxWidth: 520, alignment: .leading)
+        .litPanel(lift: .two, radius: 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(AppMetric.l)
     }
 
     private func treemapPanel(current: FileNode) -> some View {
         ZStack {
             if current.children.isEmpty || current.size == 0 {
-                VStack(spacing: 10) {
-                    Image(systemName: "tray")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.tertiary)
-                    Text(current.children.isEmpty ? "This folder is empty." : "All items report 0 bytes.")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text(current.children.isEmpty
+                     ? "This folder is empty. Go up with ⌘[ or choose another folder."
+                     : "Every item here reports 0 bytes, so there is nothing to map.")
+                    .font(AppFont.text(15))
+                    .foregroundStyle(AppColor.ink3)
+                    .multilineTextAlignment(.center)
+                    .padding(AppMetric.xl)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 TreemapView(
                     node: current,
@@ -275,90 +267,103 @@ struct ContentView: View {
                     onDrillIn: { drillInto($0) },
                     onHover: { hoveredNode = $0 }
                 )
+                .padding(6)
             }
         }
+        .litPanel(lift: .one, radius: AppMetric.radiusPanel)
     }
 
     // MARK: - Side panel
 
     private var sidePanel: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: AppMetric.m) {
                 if let node = selectedNode {
                     selectionHeader(node: node)
-                    Divider()
+                    Hairline()
                     selectionDetails(node: node)
-                    Divider()
+                    Hairline()
                     actionButtons(node: node)
                     if node.isDirectory, !node.children.isEmpty {
-                        Divider()
+                        Hairline()
                         topItems(node: node)
                     }
                 } else {
                     placeholderPanel
                 }
             }
-            .padding(14)
+            .padding(AppMetric.l)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .litPanel(lift: .one, radius: AppMetric.radiusPanel)
     }
 
     private func selectionHeader(node: FileNode) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        let category = FileCategory(node: node)
+        return HStack(alignment: .top, spacing: 10) {
             Image(systemName: iconName(for: node))
-                .font(.title)
-                .foregroundStyle(ColorPalette.color(for: node))
+                .font(.system(size: 22))
+                .foregroundStyle(category.glyphInk)
+                .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(node.name)
-                    .font(.headline)
+                    .font(AppFont.display(17, weight: .bold))
+                    .tracking(-0.3)
+                    .foregroundStyle(AppColor.ink)
                     .lineLimit(2)
                     .truncationMode(.middle)
                 Text(node.size.formattedSize)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                    .font(AppFont.display(26, weight: .bold).monospacedDigit())
+                    .tracking(-0.9)
+                    .foregroundStyle(AppColor.ink)
             }
         }
     }
 
     private func selectionDetails(node: FileNode) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        VStack(alignment: .leading, spacing: AppMetric.s) {
+            HStack(spacing: AppMetric.s) {
                 Text(node.isDirectory ? "Folder" : "File")
-                    .font(.caption.weight(.medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.15), in: Capsule())
+                    .font(AppFont.display(12.5))
+                    .foregroundStyle(AppColor.ink2)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.66), in: Capsule())
+                    .overlay(Capsule().strokeBorder(AppColor.hair, lineWidth: 1))
                 if node.isDirectory {
-                    Text("\(node.children.count) items")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("\(node.children.count.formatted()) items")
+                        .font(AppFont.display(13).monospacedDigit())
+                        .foregroundStyle(AppColor.ink3)
                 }
                 Spacer()
             }
             if let parent = currentNode, parent.size > 0 {
                 let pct = Double(node.size) / Double(parent.size) * 100
-                HStack(spacing: 6) {
+                HStack(spacing: AppMetric.s) {
+                    // Track in hair-strong, filled portion in the accent:
+                    // the selection is the user's own figure.
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(Color.secondary.opacity(0.18))
+                                .fill(AppColor.hairStrong)
                             Capsule()
-                                .fill(ColorPalette.color(for: node))
-                                .frame(width: geo.size.width * CGFloat(pct / 100))
+                                .fill(AppColor.accent)
+                                .frame(width: geo.size.width * CGFloat(min(pct, 100) / 100))
                         }
                     }
-                    .frame(height: 6)
+                    .frame(height: 4)
                     Text(String(format: "%.1f%%", pct))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .frame(width: 48, alignment: .trailing)
+                        .font(AppFont.display(13).monospacedDigit())
+                        .foregroundStyle(AppColor.ink3)
+                        .frame(width: 52, alignment: .trailing)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(String(format: "%.1f percent of the current folder", pct))
             }
+            // A path is real data, so monospace is allowed here.
             Text(node.url.path)
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(AppColor.ink4)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
@@ -366,14 +371,15 @@ struct ContentView: View {
     }
 
     private func actionButtons(node: FileNode) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: AppMetric.s) {
             if node.isDirectory, !node.children.isEmpty {
                 Button {
                     drillInto(node)
                 } label: {
-                    Label("Open Folder", systemImage: "arrow.down.right.square")
+                    Label("Open Folder", systemImage: "arrow.down.right")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.lit(.secondary, size: .compact))
             }
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([node.url])
@@ -381,76 +387,96 @@ struct ContentView: View {
                 Label("Reveal in Finder", systemImage: "magnifyingglass")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Button(role: .destructive) {
+            .buttonStyle(.lit(.secondary, size: .compact))
+            Button {
                 showDeleteConfirm = true
             } label: {
                 Label("Move to Trash", systemImage: "trash")
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundColor(.red)
             }
+            .buttonStyle(.lit(.destructive, size: .compact))
             .keyboardShortcut(.delete, modifiers: .command)
         }
     }
 
     private func topItems(node: FileNode) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Top items")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Largest items")
+                .font(AppFont.display(13))
+                .foregroundStyle(AppColor.ink3)
+                .padding(.bottom, 6)
+            Rectangle().fill(AppColor.hairStrong).frame(height: 1)
             ForEach(Array(node.children.prefix(8))) { child in
-                HStack(spacing: 6) {
+                HStack(spacing: AppMetric.s) {
                     Image(systemName: iconName(for: child))
-                        .font(.caption)
-                        .foregroundStyle(ColorPalette.color(for: child))
-                        .frame(width: 14)
+                        .font(.system(size: 11))
+                        .foregroundStyle(FileCategory(node: child).glyphInk)
+                        .frame(width: 16)
                     Text(child.name)
-                        .font(.caption)
+                        .font(AppFont.text(13))
+                        .foregroundStyle(AppColor.ink2)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    Spacer()
+                    Spacer(minLength: AppMetric.s)
                     Text(child.size.formattedSize)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .font(AppFont.display(12.5).monospacedDigit())
+                        .foregroundStyle(AppColor.ink3)
                 }
+                .padding(.vertical, 7)
+                Hairline()
             }
         }
     }
 
     private var placeholderPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "hand.point.up.left")
-                    .foregroundStyle(.tint)
-                Text("Nothing selected")
-                    .font(.headline)
-            }
+        VStack(alignment: .leading, spacing: AppMetric.m) {
+            Text("Nothing selected")
+                .font(AppFont.display(17, weight: .bold))
+                .tracking(-0.3)
+                .foregroundStyle(AppColor.ink)
             Text("Click a rectangle to inspect it. Double-click a folder to drill in.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Divider().padding(.vertical, 4)
-            VStack(alignment: .leading, spacing: 6) {
+                .font(AppFont.text(14))
+                .foregroundStyle(AppColor.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+            Hairline().padding(.vertical, 2)
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(FileCategory.allCases, id: \.self) { category in
+                    HStack(spacing: AppMetric.s) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(category.fill)
+                            .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .strokeBorder(AppColor.hairStrong, lineWidth: 0.5))
+                            .frame(width: 12, height: 12)
+                        Text(category.title)
+                            .font(AppFont.text(13))
+                            .foregroundStyle(AppColor.ink2)
+                    }
+                }
+            }
+            Hairline().padding(.vertical, 2)
+            VStack(alignment: .leading, spacing: 7) {
                 shortcutRow(keys: "⌘O", desc: "Choose folder")
                 shortcutRow(keys: "⌘R", desc: "Rescan")
                 shortcutRow(keys: "⌘[", desc: "Go up")
                 shortcutRow(keys: "⌘⌫", desc: "Move selection to Trash")
                 shortcutRow(keys: "Esc", desc: "Clear selection")
             }
-            .padding(.top, 2)
         }
     }
 
     private func shortcutRow(keys: String, desc: String) -> some View {
-        HStack {
+        HStack(spacing: AppMetric.s) {
             Text(keys)
-                .font(.system(.caption, design: .monospaced))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(Color.secondary.opacity(0.15),
-                            in: RoundedRectangle(cornerRadius: 3))
+                .font(AppFont.display(12))
+                .foregroundStyle(AppColor.ink2)
+                .frame(minWidth: 30)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.66), in: Capsule())
+                .overlay(Capsule().strokeBorder(AppColor.hair, lineWidth: 1))
             Text(desc)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppFont.text(13))
+                .foregroundStyle(AppColor.ink3)
             Spacer()
         }
     }
@@ -458,60 +484,60 @@ struct ContentView: View {
     // MARK: - Status bar
 
     private var statusBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppMetric.s) {
             if progress.isScanning {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
                 Text("Scanning… \(progress.filesScanned.formatted()) files")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                    .font(AppFont.text(12).monospacedDigit())
+                    .foregroundStyle(AppColor.ink3)
             } else if let hov = hoveredNode {
                 Image(systemName: iconName(for: hov))
-                    .foregroundStyle(ColorPalette.color(for: hov))
+                    .foregroundStyle(FileCategory(node: hov).glyphInk)
                 Text(hov.name)
+                    .foregroundStyle(AppColor.ink)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text("·")
-                    .foregroundStyle(.tertiary)
                 Text(hov.size.formattedSize)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                    .font(AppFont.display(12).monospacedDigit())
+                    .foregroundStyle(AppColor.ink2)
                 if let parent = currentNode, parent.size > 0 {
                     let pct = Double(hov.size) / Double(parent.size) * 100
-                    Text(String(format: "(%.1f%%)", pct))
-                        .foregroundStyle(.tertiary)
-                        .monospacedDigit()
+                    Text(String(format: "%.1f%%", pct))
+                        .font(AppFont.display(12).monospacedDigit())
+                        .foregroundStyle(AppColor.ink4)
                 }
             } else if let sel = selectedNode {
-                Image(systemName: "checkmark.circle")
-                    .foregroundStyle(.tint)
+                Circle()
+                    .fill(AppColor.accent)
+                    .frame(width: 7, height: 7)
                 Text(sel.name)
+                    .foregroundStyle(AppColor.ink)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text("·")
-                    .foregroundStyle(.tertiary)
                 Text(sel.size.formattedSize)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                    .font(AppFont.display(12).monospacedDigit())
+                    .foregroundStyle(AppColor.ink2)
             } else if currentNode != nil {
                 Text("Ready")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppColor.ink4)
             } else {
                 Text("No folder loaded")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppColor.ink4)
             }
             Spacer()
             if !progress.isScanning, progress.scanElapsed > 0, currentNode != nil {
                 Text("Scanned in \(formatElapsed(progress.scanElapsed))")
-                    .foregroundStyle(.tertiary)
-                    .monospacedDigit()
+                    .font(AppFont.text(12).monospacedDigit())
+                    .foregroundStyle(AppColor.ink4)
             }
         }
-        .font(.caption)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .font(AppFont.text(12))
+        .padding(.horizontal, AppMetric.m)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color(.sRGB, red: 238 / 255, green: 238 / 255, blue: 236 / 255, opacity: 0.72))
+        .overlay(alignment: .top) {
+            Rectangle().fill(AppColor.ink.opacity(0.07)).frame(height: 1)
+        }
     }
 
     // MARK: - Actions
@@ -626,6 +652,51 @@ struct ContentView: View {
         let mins = Int(s) / 60
         let secs = Int(s) % 60
         return "\(mins)m \(secs)s"
+    }
+}
+
+// MARK: - Breadcrumb item
+//
+// Active item: ink text on an accent rule, never a filled block.
+
+private struct CrumbButton: View {
+    let title: String
+    let isRoot: Bool
+    let isCurrent: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if isRoot {
+                    Image(systemName: "folder")
+                        .font(.system(size: 11))
+                }
+                Text(title)
+                    .font(AppFont.display(13))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isCurrent || hovering ? AppColor.ink : AppColor.ink3)
+            .padding(.horizontal, 8)
+            .frame(minHeight: 28)
+            .background(
+                Capsule().fill(Color.white.opacity(hovering && !isCurrent ? 0.55 : 0))
+            )
+            .overlay(alignment: .bottom) {
+                if isCurrent {
+                    Rectangle()
+                        .fill(AppColor.accent)
+                        .frame(height: 2)
+                        .padding(.horizontal, 8)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
     }
 }
 

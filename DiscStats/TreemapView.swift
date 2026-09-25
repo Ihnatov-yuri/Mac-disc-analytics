@@ -2,42 +2,76 @@ import SwiftUI
 import AppKit
 
 // MARK: - Color palette
+//
+// Lit Field data palette (DESIGN.md Part II, 6): the world's neutrals plus
+// the functional series hues, flat fills only. The brand accent is kept out
+// of the categories and reserved for the user's own focus: the selected
+// cell. Each category names the label ink that clears 4.5:1 on its fill.
 
-enum ColorPalette {
-    static func color(for node: FileNode) -> Color {
+enum FileCategory: CaseIterable {
+    case folder, video, image, audio, document, archive, other
+
+    init(node: FileNode) {
         if node.isDirectory {
-            return Color(nsColor: .systemBlue)
+            self = .folder
+            return
         }
-        let ext = node.url.pathExtension.lowercased()
-        switch ext {
+        switch node.url.pathExtension.lowercased() {
         case "jpg", "jpeg", "png", "gif", "heic", "heif", "tiff", "tif",
              "bmp", "webp", "raw", "arw", "cr2", "nef", "dng", "psd", "svg":
-            return Color(nsColor: .systemTeal)
+            self = .image
         case "mp4", "mov", "m4v", "mkv", "avi", "webm", "wmv", "flv", "mpg", "mpeg":
-            return Color(nsColor: .systemPurple)
+            self = .video
         case "mp3", "m4a", "wav", "flac", "aac", "ogg", "aif", "aiff", "alac":
-            return Color(nsColor: .systemOrange)
-        case "pdf":
-            return Color(nsColor: .systemRed)
-        case "doc", "docx", "pages", "rtf", "txt", "md", "markdown", "odt", "epub":
-            return Color(nsColor: .systemIndigo)
-        case "xls", "xlsx", "numbers", "csv", "tsv":
-            return Color(nsColor: .systemGreen)
-        case "ppt", "pptx", "key":
-            return Color(nsColor: .systemPink)
-        case "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "dmg", "iso", "tgz":
-            return Color(nsColor: .systemBrown)
-        case "swift", "py", "js", "jsx", "ts", "tsx", "rb", "go", "rs", "java",
+            self = .audio
+        case "pdf", "doc", "docx", "pages", "rtf", "txt", "md", "markdown", "odt", "epub",
+             "xls", "xlsx", "numbers", "csv", "tsv", "ppt", "pptx", "key", "log",
+             "swift", "py", "js", "jsx", "ts", "tsx", "rb", "go", "rs", "java",
              "kt", "c", "cpp", "cc", "h", "hpp", "m", "mm", "cs", "php",
              "html", "htm", "css", "scss", "sh", "json", "xml", "yaml", "yml", "toml":
-            return Color(red: 0.35, green: 0.72, blue: 0.45)
-        case "app", "ipa", "pkg", "deb":
-            return Color(nsColor: .systemGray)
-        case "log":
-            return Color(nsColor: .systemMint)
+            self = .document
+        case "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "dmg", "iso", "tgz",
+             "app", "ipa", "pkg", "deb":
+            self = .archive
         default:
-            return Color(nsColor: .systemYellow)
+            self = .other
         }
+    }
+
+    var title: String {
+        switch self {
+        case .folder:   return "Folders"
+        case .video:    return "Video"
+        case .image:    return "Images"
+        case .audio:    return "Audio"
+        case .document: return "Documents and code"
+        case .archive:  return "Archives and installers"
+        case .other:    return "Other files"
+        }
+    }
+
+    /// Cell fill. Contrast of the label ink on each fill is noted inline.
+    var fill: Color {
+        switch self {
+        case .folder:   return Color(hex: 0xC4CACD) // ink 11.8:1
+        case .video:    return AppColor.statusInfo    // #14507A, white 8.5:1
+        case .image:    return AppColor.statusSuccess // #0F5D3A, white 7.9:1
+        case .audio:    return AppColor.statusWarning // #7A4B00, white 7.4:1
+        case .document: return AppColor.ink2          // #23262B, white 15:1
+        case .archive:  return AppColor.statusError   // #9F1239, white 8.0:1
+        case .other:    return Color(hex: 0x6B7178)   // white 4.9:1
+        }
+    }
+
+    /// Label ink on `fill`.
+    var labelInk: Color {
+        self == .folder ? AppColor.ink : .white
+    }
+
+    /// Glyph for this category on a light ground (side panel, status bar).
+    /// Light fills are too faint as a glyph, so folders use `ink3`.
+    var glyphInk: Color {
+        self == .folder ? AppColor.ink3 : fill
     }
 }
 
@@ -76,7 +110,6 @@ struct TreemapView: View {
                     drawCell(item: item, baseCtx: context)
                 }
             }
-            .background(Color(NSColor.windowBackgroundColor))
             .onChange(of: node) { _ in
                 hoveredId = nil
                 onHover(nil)
@@ -121,59 +154,46 @@ struct TreemapView: View {
     private func drawCell(item: TreemapItem, baseCtx: GraphicsContext) {
         let ctx = baseCtx
         let rect = item.rect
-        let path = Path(roundedRect: rect, cornerRadius: 1.5)
-        let base = ColorPalette.color(for: item.node)
-
-        // Vertical gradient for subtle depth
-        let gradient = Gradient(colors: [
-            base.opacity(0.95),
-            base.opacity(0.65)
-        ])
-        ctx.fill(path,
-                 with: .linearGradient(gradient,
-                                       startPoint: CGPoint(x: rect.midX, y: rect.minY),
-                                       endPoint: CGPoint(x: rect.midX, y: rect.maxY)))
-
-        // Border / selection / hover
+        let path = Path(roundedRect: rect, cornerRadius: 2)
+        let category = FileCategory(node: item.node)
         let isSel = item.node.id == selectedId
         let isHov = item.node.id == hoveredId
-        let strokeColor: GraphicsContext.Shading
-        let strokeWidth: CGFloat
-        if isSel {
-            strokeColor = .color(.white)
-            strokeWidth = 2.5
-        } else if isHov {
-            strokeColor = .color(.white.opacity(0.85))
-            strokeWidth = 1.5
-        } else {
-            strokeColor = .color(.black.opacity(0.28))
-            strokeWidth = 0.5
-        }
-        ctx.stroke(path, with: strokeColor, lineWidth: strokeWidth)
 
-        // Labels with shadow for readability on any color
+        // Flat fills only: no gradient fills and no shadows on data.
+        // The selected cell is the one full-chroma object, with ink on it.
+        let fill = isSel ? AppColor.accent : category.fill
+        let ink = isSel ? AppColor.ink : category.labelInk
+        ctx.fill(path, with: .color(fill))
+
+        if isSel {
+            ctx.stroke(path, with: .color(AppColor.ink), lineWidth: 2)
+        } else if isHov {
+            ctx.fill(path, with: .color(.white.opacity(0.14)))
+            ctx.stroke(path, with: .color(ink), lineWidth: 1.5)
+        } else {
+            // Internal divider between marks, not a panel outline.
+            ctx.stroke(path, with: .color(AppColor.hairStrong), lineWidth: 0.5)
+        }
+
         guard rect.width > 48, rect.height > 24 else { return }
 
-        var textCtx = ctx
-        textCtx.addFilter(.shadow(color: .black.opacity(0.55), radius: 1.5, x: 0, y: 1))
-
         let nameText = Text(item.node.name)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.white)
+            .font(AppFont.display(11, weight: .semibold))
+            .foregroundColor(ink)
 
-        let resolved = textCtx.resolve(nameText)
-        let textSize = resolved.measure(in: CGSize(width: rect.width - 10, height: rect.height))
-        textCtx.draw(resolved,
-                     at: CGPoint(x: rect.minX + 6, y: rect.minY + 5),
-                     anchor: .topLeading)
+        let resolved = ctx.resolve(nameText)
+        let textSize = resolved.measure(in: CGSize(width: rect.width - 12, height: rect.height - 10))
+        ctx.draw(resolved,
+                 in: CGRect(x: rect.minX + 6, y: rect.minY + 5,
+                            width: max(0, rect.width - 12), height: textSize.height))
 
         if rect.height > 38 && textSize.height < rect.height - 22 {
             let sizeText = Text(item.node.size.formattedSize)
-                .font(.system(size: 10))
-                .foregroundColor(.white.opacity(0.95))
-            textCtx.draw(sizeText,
-                         at: CGPoint(x: rect.minX + 6, y: rect.minY + 6 + textSize.height + 1),
-                         anchor: .topLeading)
+                .font(AppFont.display(10, weight: .semibold).monospacedDigit())
+                .foregroundColor(ink)
+            ctx.draw(sizeText,
+                     at: CGPoint(x: rect.minX + 6, y: rect.minY + 6 + textSize.height + 1),
+                     anchor: .topLeading)
         }
     }
 }

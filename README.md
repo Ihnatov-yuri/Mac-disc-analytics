@@ -17,8 +17,13 @@ Built with SwiftUI for macOS 13 (Ventura) and later.
   in a single SwiftUI `Canvas` for speed (no per‑rectangle SwiftUI views).
 - **Drill in, drill out** — double‑click a folder to descend, click any
   breadcrumb to jump back, ⌘[ or ⌘↑ to go up.
-- **Curated color palette by file type** — videos purple, images teal,
-  audio orange, code green, archives brown, PDFs red, etc.
+- **Lit Field design language** (the ihnatov.nl design system, Operate
+  mode): a static light field behind veiled panels, Archivo for controls
+  and figures, Schibsted Grotesk for sentences, tabular numerals, and one
+  accent. Flat, contrast-checked fills by file type: folders light slate,
+  video blue, images green, audio amber, documents and code graphite,
+  archives and installers crimson. The selected item is the one orange
+  cell.
 - **Hover and select details** — side panel shows the path, percentage of
   the current folder, and the top 8 children. Status bar at the bottom
   echoes whatever the cursor is over.
@@ -85,12 +90,15 @@ DiscStats/
 │                          replaces the standard “About DiscStats” menu
 ├── ContentView.swift    – Toolbar, breadcrumb, treemap panel, side
 │                          panel, status bar, keyboard shortcuts
-├── TreemapView.swift    – Canvas‑based squarified treemap + color palette
+├── TreemapView.swift    – Canvas‑based squarified treemap + file categories
 ├── Scanner.swift        – Background recursive scanner, inode dedup,
 │                          progress reporting, cancellation
 ├── FileNode.swift       – Tree node model (URL, size, children, parent,
 │                          cached itemCount)
-└── AboutView.swift      – About panel UI
+├── AboutView.swift      – About panel UI
+├── Theme/               – Lit Field tokens (colour, type, metrics), field,
+│                          panels and lift, button roles, font loader
+└── Resources/Fonts/     – Archivo and Schibsted Grotesk (SIL OFL 1.1)
 ```
 
 The squarified treemap algorithm in `TreemapLayout` follows Bruls,

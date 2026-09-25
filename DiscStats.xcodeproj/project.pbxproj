@@ -13,6 +13,11 @@
 		B800000000000000000000B8 /* FileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B700000000000000000000B7 /* FileNode.swift */; };
 		BA00000000000000000000BA /* TreemapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B900000000000000000000B9 /* TreemapView.swift */; };
 		BC00000000000000000000BC /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB00000000000000000000BB /* AboutView.swift */; };
+		C200000000000000000000C2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C100000000000000000000C1 /* Theme.swift */; };
+		C400000000000000000000C4 /* Materials.swift in Sources */ = {isa = PBXBuildFile; fileRef = C300000000000000000000C3 /* Materials.swift */; };
+		C600000000000000000000C6 /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = C500000000000000000000C5 /* Buttons.swift */; };
+		C800000000000000000000C8 /* FontLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C700000000000000000000C7 /* FontLoader.swift */; };
+		CA00000000000000000000CA /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = C900000000000000000000C9 /* Fonts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +28,11 @@
 		B700000000000000000000B7 /* FileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileNode.swift; sourceTree = "<group>"; };
 		B900000000000000000000B9 /* TreemapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreemapView.swift; sourceTree = "<group>"; };
 		BB00000000000000000000BB /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		C100000000000000000000C1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		C300000000000000000000C3 /* Materials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Materials.swift; sourceTree = "<group>"; };
+		C500000000000000000000C5 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
+		C700000000000000000000C7 /* FontLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontLoader.swift; sourceTree = "<group>"; };
+		C900000000000000000000C9 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,8 +71,21 @@
 				B700000000000000000000B7 /* FileNode.swift */,
 				B900000000000000000000B9 /* TreemapView.swift */,
 				BB00000000000000000000BB /* AboutView.swift */,
+				CB00000000000000000000CB /* Theme */,
+				C900000000000000000000C9 /* Fonts */,
 			);
 			path = DiscStats;
+			sourceTree = "<group>";
+		};
+		CB00000000000000000000CB /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				C100000000000000000000C1 /* Theme.swift */,
+				C300000000000000000000C3 /* Materials.swift */,
+				C500000000000000000000C5 /* Buttons.swift */,
+				C700000000000000000000C7 /* FontLoader.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -123,6 +146,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA00000000000000000000CA /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +163,10 @@
 				B800000000000000000000B8 /* FileNode.swift in Sources */,
 				BA00000000000000000000BA /* TreemapView.swift in Sources */,
 				BC00000000000000000000BC /* AboutView.swift in Sources */,
+				C200000000000000000000C2 /* Theme.swift in Sources */,
+				C400000000000000000000C4 /* Materials.swift in Sources */,
+				C600000000000000000000C6 /* Buttons.swift in Sources */,
+				C800000000000000000000C8 /* FontLoader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

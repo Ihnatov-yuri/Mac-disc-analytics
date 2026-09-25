@@ -8,54 +8,50 @@ struct AboutView: View {
     }()
 
     var body: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 96, height: 96)
-                    .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
-                Image(systemName: "internaldrive.fill")
-                    .font(.system(size: 46, weight: .regular))
-                    .foregroundStyle(.white)
-            }
-            .padding(.top, 4)
+        VStack(spacing: AppMetric.l) {
+            // App mark: a night tile with an accent glyph (5.76:1). Flat
+            // fill, lit edge and a short contact shadow; no gradient, no halo.
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(AppColor.night)
+                .frame(width: 88, height: 88)
+                .overlay(
+                    Image(systemName: "internaldrive")
+                        .font(.system(size: 38, weight: .regular))
+                        .foregroundStyle(AppColor.accent)
+                )
+                .litLift(.two, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .accessibilityHidden(true)
+                .padding(.top, AppMetric.xs)
 
-            VStack(spacing: 4) {
+            VStack(spacing: AppMetric.xs) {
                 Text("DiscStats")
-                    .font(.title.weight(.semibold))
+                    .font(AppFont.display(26, weight: .bold))
+                    .tracking(-0.8)
+                    .foregroundStyle(AppColor.ink)
                 Text(appVersion)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                    .font(AppFont.display(13).monospacedDigit())
+                    .foregroundStyle(AppColor.ink3)
             }
 
             Text("A small, native Mac app that scans a folder and shows where your disk space is going. Each rectangle is a file or folder, sized by how much space it takes up. Double-click a folder to drill in, then move what you don’t need to the Trash.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(AppFont.text(14))
+                .foregroundStyle(AppColor.ink3)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, AppMetric.s)
 
-            Divider().padding(.horizontal, 24)
+            Hairline().padding(.horizontal, AppMetric.xl)
 
             VStack(spacing: 6) {
                 Text("Made by Yuri Ihnatov")
-                    .font(.callout)
+                    .font(AppFont.text(14))
+                    .foregroundStyle(AppColor.ink2)
                 Link(destination: URL(string: "https://ihnatov.nl")!) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "link")
-                        Text("ihnatov.nl")
-                            .underline()
-                    }
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(Color.accentColor)
+                    Text("ihnatov.nl")
+                        .font(AppFont.display(14))
+                        .underline(true, color: AppColor.hairStrong)
+                        .foregroundStyle(AppColor.accentOnLight)
                 }
                 .buttonStyle(.plain)
                 .pointerStyleLinkIfAvailable()
@@ -63,13 +59,13 @@ struct AboutView: View {
             }
 
             Text("© \(currentYear) Yuri Ihnatov")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(AppFont.text(12).monospacedDigit())
+                .foregroundStyle(AppColor.ink4)
                 .padding(.top, 2)
         }
         .padding(28)
         .frame(width: 380)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(LitField())
     }
 
     private var currentYear: String {
